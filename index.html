@@ -1,19 +1,35 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-    <link href="./styles.css" rel="stylesheet">
-    <title>Hello World!</title>
+    <title>Beautiful ScreenShots App</title>
+    <style>
+      body {
+        background-color: #fffff2;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+
+      #imageContainer {
+        border: 1px solid rgb(50, 47, 47);
+        border-radius: 20px;
+        padding: 20px;
+      }
+
+      #imageCanvas {
+        border: 1px solid #000; /* For visibility */
+        /* Set a max width and height while maintaining aspect ratio */
+        max-width: 100%;
+        height: auto;
+      }
+    </style>
   </head>
   <body>
-    <h1>Hello World!</h1>
-    We are using Node.js <span id="node-version"></span>,
-    Chromium <span id="chrome-version"></span>,
-    and Electron <span id="electron-version"></span>.
-
-    <!-- You can also require other files to run in this process -->
-    <script src="./renderer.js"></script>
+    <h1>Screen Capture</h1>
+    <canvas id="imageCanvas"></canvas>
+    <script src="renderer.js"></script>
   </body>
 </html>

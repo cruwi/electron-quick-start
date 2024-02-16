@@ -18,5 +18,8 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "^28.2.2"
+  },
+  "dependencies": {
+    "sharp": "^0.33.2"
   }
 }

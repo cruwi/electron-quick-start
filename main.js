@@ -1,43 +1,118 @@
-// Modules to control application life and create native browser window
-const { app, BrowserWindow } = require('electron')
-const path = require('node:path')
+const {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  desktopCapturer,
+  screen,
+} = require("electron");
 
-function createWindow () {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
+const nativeImage = require("electron").nativeImage;
+
+const path = require("path");
+const fs = require("fs");
+const os = require("os");
+const sharp = require("sharp");
+
+let mainWindow;
+let selectionWindow;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
-  })
-
-  // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
-
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      enableRemoteModule: false,
+      nodeIntegration: false,
+    },
+  });
+  mainWindow.loadFile("index.html");
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+function createSelectionWindow() {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  selectionWindow = new BrowserWindow({
+    width,
+    height,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+    },
+  });
+  selectionWindow.loadFile("selection.html");
+}
+
 app.whenReady().then(() => {
-  createWindow()
+  createWindow();
+  globalShortcut.register("CommandOrControl+Alt+S", () => {
+    if (!selectionWindow) {
+      createSelectionWindow();
+    } else {
+      selectionWindow.focus();
+    }
+  });
+});
 
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+});
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit()
-})
+ipcMain.on("selected-area", async (event, bounds) => {
+  // Hide the selection window to ensure it's not included in the screenshot
+  if (selectionWindow) {
+    selectionWindow.hide(); // Ensure the window is hidden before capturing
+  }
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+  const sources = await desktopCapturer.getSources({
+    types: ["screen"],
+    thumbnailSize: screen.getPrimaryDisplay().size, // Capture at full resolution
+  });
+
+  // Re-show the selection window here if you plan to use it again
+  // Otherwise, it's being closed anyway
+
+  const primaryScreen = sources[0];
+
+  const imageBuffer = primaryScreen.thumbnail.toPNG();
+  const imagePath = path.join(os.tmpdir(), "screenshot.png");
+
+  sharp(imageBuffer)
+    .metadata()
+    .then((metadata) => {
+      const scaleX =
+        metadata.width / screen.getPrimaryDisplay().workAreaSize.width;
+      const scaleY =
+        metadata.height / screen.getPrimaryDisplay().workAreaSize.height;
+
+      const extractBounds = {
+        left: Math.round(bounds.x * scaleX),
+        top: Math.round(bounds.y * scaleY),
+        width: Math.round(bounds.width * scaleX),
+        height: Math.round(bounds.height * scaleY),
+      };
+
+      if (
+        extractBounds.left + extractBounds.width > metadata.width ||
+        extractBounds.top + extractBounds.height > metadata.height
+      ) {
+        throw new Error(
+          "Extract area exceeds the bounds of the captured image."
+        );
+      }
+
+      return sharp(imageBuffer).extract(extractBounds).toFile(imagePath);
+    })
+    .then(() => {
+      mainWindow.webContents.send("display-captured-image", imagePath);
+      // Close the selection window after capturing
+      if (selectionWindow) {
+        selectionWindow.close();
+        selectionWindow = null;
+      }
+    })
+    .catch((err) => console.error("Error cropping the image:", err));
+});
