@@ -8,6 +8,12 @@
 
 console.log("Renderer script is loaded");
 ipcRenderer.on("display-captured-image", (dataUrl) => {
+  // Play the screenshot sound
+  const screenshotSound = new Audio("iphone-screenshot.mp3");
+  screenshotSound
+    .play()
+    .catch((err) => console.error("Error playing sound:", err));
+
   const canvas = document.getElementById("imageCanvas");
   const ctx = canvas.getContext("2d");
   const img = new Image();
