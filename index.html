@@ -4,8 +4,7 @@
     <title>Beautiful ScreenShots App</title>
     <style>
       body {
-        background-color: #fffff2;
-        min-height: 300px;
+        background-color: #ffffff;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -13,23 +12,32 @@
         text-align: center;
       }
 
-      #imageContainer {
-        border: 1px solid rgb(50, 47, 47);
-        border-radius: 20px;
-        padding: 20px;
-      }
-
       #imageCanvas {
-        border: 1px solid #000; /* For visibility */
+        margin-top: 50px;
+        border-radius: 8px;
+        box-shadow: 3px 3px 10px rgba(18, 18, 18, 0.155);
+        border: 1px solid #e4dede; /* For visibility */
         /* Set a max width and height while maintaining aspect ratio */
         max-width: 100%;
         height: auto;
+        background-color: transparent;
+      }
+
+      #controls {
+        margin-top: 100px;
+        padding: 20px;
       }
     </style>
   </head>
   <body>
-    <h1>Screen Capture</h1>
     <canvas id="imageCanvas"></canvas>
+
+    <div id="controls">
+      <input type="color" id="background-color-picker" value="#FFFFFF" />
+      <button id="download-btn">Download</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fabric"></script>
     <script src="renderer.js"></script>
   </body>
 </html>
